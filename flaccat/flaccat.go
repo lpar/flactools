@@ -36,13 +36,19 @@ func checksum(fspc string) (string, error) {
 }
 
 func examine(path string, info os.FileInfo, err error) error {
-	lcpath := strings.ToLower(path)
-	if strings.HasSuffix(lcpath, ".flac") {
-		md5, ferr := checksum(path)
-		if ferr != nil {
-			fmt.Fprintf(os.Stderr, "error reading %s: %s", path, ferr)
-		} else {
-			fmt.Printf("%s %s\n", md5, path)
+	if info.IsDir() {
+		if strings.HasSuffix(path, "/#recycle") || strings.HasSuffix(path, "/@eaDir") {
+			return filepath.SkipDir
+		}
+	} else {
+		lcpath := strings.ToLower(path)
+		if strings.HasSuffix(lcpath, ".flac") {
+			md5, ferr := checksum(path)
+			if ferr != nil {
+				fmt.Fprintf(os.Stderr, "error reading %s: %s\n", path, ferr)
+			} else {
+				fmt.Printf("%s %s\n", md5, path)
+			}
 		}
 	}
 	return err
