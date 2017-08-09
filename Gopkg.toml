@@ -1,0 +1,3 @@
+[[constraint]]
+  name = "github.com/mewkiz/flac"
+  version = "1.0.5"
