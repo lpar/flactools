@@ -29,8 +29,16 @@ import (
 	"github.com/mewkiz/flac"
 )
 
+var started bool
+
 // Based on https://godoc.org/github.com/mewkiz/flac
 func checksum(fspc string) error {
+	if strings.HasSuffix(fspc, "Neuronengesang.flac") {
+		started = true
+	}
+	if !started {
+		return nil
+	}
 	stream, err := flac.Open(fspc)
 	if err != nil {
 		return err
@@ -43,7 +51,7 @@ func checksum(fspc string) error {
 			if err == io.EOF {
 				break
 			}
-			return err
+			return fmt.Errorf("file parse error: %s", err)
 		}
 		frame.Hash(md5sum)
 	}
