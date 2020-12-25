@@ -1,4 +1,5 @@
 vendor
-flaccat/flaccat
-flacdiff/flacdiff
-flacsum/flacsum
+flaccat
+flacdiff
+flacsum
+flacmv

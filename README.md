@@ -18,6 +18,11 @@ The third utility is `flacsum`, which checks the actual data of the FLAC files
 against their recorded MD5 checksums. It's very slow, so you probably won't
 want to run it very often.
 
+The fourth utility is `flacmv`, which uses FLAC metadata to move folders around
+based on artist and album name, putting them under `Artist\Album`. It can also
+write out a shell script to perform the moves, so you can examine what it
+suggests before doing it.
+
 Check the source of each program for additional information that would be in
 the man page if Synology boxes had man pages.
 
