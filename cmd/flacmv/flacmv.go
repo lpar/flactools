@@ -14,6 +14,9 @@ import (
 )
 
 func examine(path string, info os.FileInfo, err error) error {
+	if err != nil {
+		return err
+	}
 	if info.IsDir() {
 		err = processDir(path, info)
 		if err != nil {
@@ -108,7 +111,7 @@ func pickTags(tuplelist [][2]string) (string, string) {
 
 func cleanName(x string) string {
 	var dn strings.Builder
-	spc := false
+	spc := false // was the last character a space?
 	for _, r := range x {
 		if unicode.IsDigit(r) || unicode.IsLetter(r) {
 			dn.WriteRune(r)
@@ -119,7 +122,11 @@ func cleanName(x string) string {
 			spc = true
 		}
 		if r == '&' {
-			dn.WriteString("and")
+			if !spc {
+				dn.WriteRune('_')
+			}
+			dn.WriteString("and_")
+			spc = true
 		}
 	}
 	return dn.String()
@@ -128,8 +135,11 @@ func cleanName(x string) string {
 func renameDirectory(path string, artist string, album string) error {
 	artdir := filepath.Join(*destDir, cleanName(artist))
 	albdir := filepath.Join(artdir, cleanName(album))
+	if path == albdir {
+		return nil // already in the right place
+	}
 	if *shell {
-		fmt.Printf("mkdir -p \"%s\"\nmv \"%s\" \"%s\"\n", artdir, path, albdir)
+		fmt.Printf("mkdir -p \"%s\"\nmv -n \"%s\" \"%s\"\n", artdir, path, albdir)
 		return nil
 	}
 	fmt.Printf("%s -> %s\n", path, albdir)
@@ -141,7 +151,7 @@ func renameDirectory(path string, artist string, album string) error {
 	return nil
 }
 
-var destDir = flag.String("dest", "/volume1/music/FLAC", "destination directory")
+var destDir = flag.String("dest", "/volume1/FLAC", "destination directory")
 var dryRun = flag.Bool("test", false, "test mode, don't actually move files")
 var shell = flag.Bool("shell", false, "output shell script instead of moving files")
 
