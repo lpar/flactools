@@ -36,6 +36,9 @@ func checksum(fspc string) (string, error) {
 }
 
 func examine(path string, info os.FileInfo, err error) error {
+	if err != nil {
+		return err
+	}
 	if info.IsDir() {
 		if strings.HasSuffix(path, "/#recycle") || strings.HasSuffix(path, "/@eaDir") {
 			return filepath.SkipDir

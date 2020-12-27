@@ -18,10 +18,26 @@ The third utility is `flacsum`, which checks the actual data of the FLAC files
 against their recorded MD5 checksums. It's very slow, so you probably won't
 want to run it very often.
 
-The fourth utility is `flacmv`, which uses FLAC metadata to move folders around
+The next two utilities are for cleaning up naming of files. The way
+they work is based on my observation that you can basically count
+on files in the same directory belonging together as a unit, but
+that their names may be a mess, and the directory layout may be a
+mess. Hence, one utility handles naming and moving folders only,
+one handles naming files only, and they never change which folder
+a file is in.
+
+The folder namer is `flacmv`, which uses FLAC metadata to move folders around
 based on artist and album name, putting them under `Artist\Album`. It can also
-write out a shell script to perform the moves, so you can examine what it
-suggests before doing it.
+attempt to write out a shell script to perform the moves, so you can examine what it
+suggests before doing it. (However, if you have really awkward characters in your
+folder names, you'll have to fix up the shell quoting yourself.)
+It also cleans up the directory names to have no spaces or punctuation in, but it
+allows accented letters.
+
+The fifth is `flacname`, which changes the names of FLAC files to be 
+`discnumber-tracknumber-title.flac`, with the same filename cleanup rules as
+`flacmv`. Again, it can either perform the renaming for you, or output a shell
+script.
 
 Check the source of each program for additional information that would be in
 the man page if Synology boxes had man pages.

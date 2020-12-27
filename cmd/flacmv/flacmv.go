@@ -7,10 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"unicode"
 
-	"github.com/mewkiz/flac"
-	"github.com/mewkiz/flac/meta"
+	"github.com/lpar/flactools"
 )
 
 func examine(path string, info os.FileInfo, err error) error {
@@ -69,72 +67,21 @@ func processDir(path string, info os.FileInfo) error {
 }
 
 func scanFile(fname string) (string, string, error) {
-	stream, err := flac.ParseFile(fname)
+	tags, err := flactools.GetTags(fname)
 	if err != nil {
-		return "","", fmt.Errorf("can't parse %s: %w", fname, err)
+		return "", "", err
 	}
-	defer stream.Close()
-	mdblocks := stream.Blocks
-	for _, blk := range mdblocks {
-		if blk.Type == meta.TypeVorbisComment {
-			vc := blk.Body.(*meta.VorbisComment)
-			artist, album := pickTags(vc.Tags)
-			if artist == "" || album == "" {
-				return "", "", fmt.Errorf("missing artist or album for %s", fname)
-			}
-			return artist, album, nil
-		}
-	}
-	return "","", fmt.Errorf("no metadata found in %s", fname)
-}
-
-func coalesce(args... string) string {
-	for _, arg := range args {
-		if arg != "" {
-			return arg
-		}
-	}
-	return ""
-}
-
-func pickTags(tuplelist [][2]string) (string, string) {
-	tags := make(map[string]string)
-	for _, tuple := range tuplelist {
-		k := tuple[0]
-		v := tuple[1]
-		tags[strings.ToUpper(k)] = v
-	}
-	artist := coalesce(tags["ALBUMARTIST"], tags["ARTIST"])
+	artist := flactools.Coalesce(tags["ALBUMARTIST"], tags["ARTIST"])
 	album := tags["ALBUM"]
-	return artist, album
-}
-
-func cleanName(x string) string {
-	var dn strings.Builder
-	spc := false // was the last character a space?
-	for _, r := range x {
-		if unicode.IsDigit(r) || unicode.IsLetter(r) {
-			dn.WriteRune(r)
-			spc = false
-		}
-		if r == ' ' && !spc {
-			dn.WriteRune('_')
-			spc = true
-		}
-		if r == '&' {
-			if !spc {
-				dn.WriteRune('_')
-			}
-			dn.WriteString("and_")
-			spc = true
-		}
+	if artist == "" || album == "" {
+		return "", "", fmt.Errorf("missing artist or album for %s", fname)
 	}
-	return dn.String()
+	return artist, album, nil
 }
 
 func renameDirectory(path string, artist string, album string) error {
-	artdir := filepath.Join(*destDir, cleanName(artist))
-	albdir := filepath.Join(artdir, cleanName(album))
+	artdir := filepath.Join(*destDir, flactools.CleanName(artist))
+	albdir := filepath.Join(artdir, flactools.CleanName(album))
 	if path == albdir {
 		return nil // already in the right place
 	}
