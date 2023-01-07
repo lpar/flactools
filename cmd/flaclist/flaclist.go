@@ -1,17 +1,18 @@
 // flaccat
 //
 // Usage:
-//   flaclist <path>
+//
+//	flaclist <path>
 //
 // Scans all directories under the specified path for FLAC files, and outputs
 // a listing of artist, album
-//
 package main
 
 import (
 	"encoding/hex"
 	"flag"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -30,7 +31,7 @@ func checksum(fspc string) (string, error) {
 	return md5, nil
 }
 
-func examine(path string, info os.FileInfo, err error) error {
+func examine(path string, info fs.DirEntry, err error) error {
 	if info.IsDir() {
 		if strings.HasSuffix(path, "/#recycle") || strings.HasSuffix(path, "/@eaDir") {
 			return filepath.SkipDir
@@ -50,8 +51,15 @@ func examine(path string, info os.FileInfo, err error) error {
 }
 
 func main() {
+	flag.Usage = func() {
+		cmdname := filepath.Base(os.Args[0])
+		fmt.Fprintf(os.Stderr, "%s - scan for FLAC files and list artists and album titles\nusage: %s path ...\n", cmdname, cmdname)
+		flag.PrintDefaults()
+	}
 	flag.Parse()
 	for _, fname := range flag.Args() {
-		filepath.Walk(fname, examine)
+		if err := filepath.WalkDir(fname, examine); err != nil {
+			fmt.Fprintf(os.Stderr, "%s: %v\n", fname, err)
+		}
 	}
 }

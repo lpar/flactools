@@ -1,7 +1,7 @@
-vendor
-flaccat
-flacdiff
-flacsum
-flacmv
-flaclist
-flacname
+.DS_Store
+/flaccat
+/flacdiff
+/flacsum
+/flacmv
+/flaclist
+/flacname

@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,12 +11,12 @@ import (
 	"github.com/lpar/flactools"
 )
 
-func examine(path string, info os.FileInfo, err error) error {
+func examine(path string, info fs.DirEntry, err error) error {
 	if err != nil {
 		return err
 	}
 	if info.IsDir() {
-		err = processDir(path, info)
+		err = processDir(path)
 		if err != nil {
 			fmt.Printf("%v - skipped\n", err)
 		}
@@ -24,8 +24,8 @@ func examine(path string, info os.FileInfo, err error) error {
 	return nil
 }
 
-func processDir(path string, info os.FileInfo) error {
-	files, err := ioutil.ReadDir(path)
+func processDir(path string) error {
+	files, err := os.ReadDir(path)
 	if err != nil {
 		return fmt.Errorf("can't read %s: %w", path, err)
 	}
@@ -61,7 +61,7 @@ func processDir(path string, info os.FileInfo) error {
 		artist = "Various Artists"
 	}
 	if err := renameDirectory(path, artist, album); err != nil {
-		return fmt.Errorf("can't move %s: %v", path, err)
+		return fmt.Errorf("can't move %s: %w", path, err)
 	}
 	return nil
 }
@@ -99,13 +99,18 @@ func renameDirectory(path string, artist string, album string) error {
 }
 
 var destDir = flag.String("dest", "/volume1/FLAC", "destination directory")
-var dryRun = flag.Bool("test", false, "test mode, don't actually move files")
+var dryRun = flag.Bool("test", false, "test mode, display what would be done but don't actually move files")
 var shell = flag.Bool("shell", false, "output shell script instead of moving files")
 
 func main() {
+	flag.Usage = func() {
+		cmdname := filepath.Base(os.Args[0])
+		fmt.Fprintf(os.Stderr, "%s - file FLAC files by artist and album, keeping them in the same directory\nusage: %s file1 ...\n", cmdname, cmdname)
+		flag.PrintDefaults()
+	}
 	flag.Parse()
 	for _, fname := range flag.Args() {
-		if err := filepath.Walk(fname, examine); err != nil {
+		if err := filepath.WalkDir(fname, examine); err != nil {
 			fmt.Printf("error scanning %s: %v\n", fname, err)
 		}
 	}

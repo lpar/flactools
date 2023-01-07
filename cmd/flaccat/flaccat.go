@@ -1,7 +1,8 @@
 // flaccat
 //
 // Usage:
-//   flaccat <path>
+//
+//	flaccat <path>
 //
 // Scans all directories under the specified path for FLAC files, and outputs
 // a catalog file to standard output consisting of the MD5 checksum for each
@@ -10,13 +11,13 @@
 // By comparing successive versions of the output, you can determine which
 // flac files have been added, removed, or moved. The flacdiff utility will
 // perform that function.
-//
 package main
 
 import (
 	"encoding/hex"
 	"flag"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -35,7 +36,7 @@ func checksum(fspc string) (string, error) {
 	return md5, nil
 }
 
-func examine(path string, info os.FileInfo, err error) error {
+func examine(path string, info fs.DirEntry, err error) error {
 	if err != nil {
 		return err
 	}
@@ -58,8 +59,15 @@ func examine(path string, info os.FileInfo, err error) error {
 }
 
 func main() {
+	flag.Usage = func() {
+		cmdname := filepath.Base(os.Args[0])
+		fmt.Fprintf(os.Stderr, "%s - catalog FLAC files by checksum for use with flacdiff\nusage: %s path ...\n", cmdname, cmdname)
+		flag.PrintDefaults()
+	}
 	flag.Parse()
 	for _, fname := range flag.Args() {
-		filepath.Walk(fname, examine)
+		if err := filepath.WalkDir(fname, examine); err != nil {
+			fmt.Fprintf(os.Stderr, "%s: %v\n", fname, err)
+		}
 	}
 }

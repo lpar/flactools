@@ -1,7 +1,8 @@
 // flacsum
 //
 // Usage:
-//   flacsum <path>
+//
+//	flacsum <path>
 //
 // For each FLAC file somewhere under the specified path, checks the MD5
 // checksum stored in the file against the actual audio data in the file,
@@ -12,16 +13,17 @@
 // lines to stdout.
 //
 // Note that the process of computing the MD5 checksums is slow.
-//
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/md5"
 	"encoding/hex"
 	"flag"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -29,17 +31,15 @@ import (
 	"github.com/mewkiz/flac"
 )
 
-var started bool
-
 // Based on https://godoc.org/github.com/mewkiz/flac
 func checksum(fspc string) error {
-	if strings.HasSuffix(fspc, "Neuronengesang.flac") {
-		started = true
+	fp, err := os.Open(fspc)
+	if err != nil {
+		return err
 	}
-	if !started {
-		return nil
-	}
-	stream, err := flac.Open(fspc)
+	defer fp.Close()
+	bfp := bufio.NewReader(fp)
+	stream, err := flac.New(bfp)
 	if err != nil {
 		return err
 	}
@@ -62,7 +62,7 @@ func checksum(fspc string) error {
 	return nil
 }
 
-func examine(path string, info os.FileInfo, err error) error {
+func examine(path string, info fs.DirEntry, err error) error {
 	if info.IsDir() {
 		if strings.HasSuffix(path, "/#recycle") || strings.HasSuffix(path, "/@eaDir") {
 			return filepath.SkipDir
@@ -82,8 +82,13 @@ func examine(path string, info os.FileInfo, err error) error {
 }
 
 func main() {
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "%s - check FLAC file integrity\nusage: flacsum path ...\n", filepath.Base(os.Args[0]))
+	}
 	flag.Parse()
 	for _, fname := range flag.Args() {
-		filepath.Walk(fname, examine)
+		if err := filepath.WalkDir(fname, examine); err != nil {
+			fmt.Fprintf(os.Stderr, "%s: %v\n", fname, err)
+		}
 	}
 }

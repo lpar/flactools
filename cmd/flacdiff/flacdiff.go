@@ -27,6 +27,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 )
 
@@ -58,7 +59,7 @@ func common(s1 string, s2 string) string {
 	n := min(len(b1), len(b2))
 	for i := 0; i < n; i++ {
 		if b1[i] != b2[i] {
-			return string(s1[:i])
+			return s1[:i]
 		}
 	}
 	return s1
@@ -127,37 +128,45 @@ func split(line string) (string, string, error) {
 }
 
 func main() {
+	flag.Usage = func() {
+		cmdname := filepath.Base(os.Args[0])
+		fmt.Fprintf(os.Stderr, "%s - summarize differences between two catalogs prepared with flaccat\nusage: %s old_catalog new_catalog\n", cmdname, cmdname)
+		flag.PrintDefaults()
+	}
 	flag.Parse()
-	if len(flag.Args()) != 2 {
-		fmt.Fprintln(os.Stderr, "Usage:\n  flacdiff previous-list current-list")
+	a := flag.Args()
+	if len(a) < 2 {
+		flag.Usage()
 		return
 	}
-	a := flag.Args()
 	r := NewReport()
-	r.process(a[0], r.addOldFile)
-	r.process(a[1], r.addNewFile)
+	if err := r.process(a[0], r.addOldFile); err != nil {
+		fmt.Fprintf(os.Stderr, "error processing %s: %v", a[0], err)
+	}
+	if err := r.process(a[1], r.addNewFile); err != nil {
+		fmt.Fprintf(os.Stderr, "error processing %s: %v", a[1], err)
+	}
 
 	base := path.Dir(r.Prefix)
 
-	fmt.Println("BASE DIRECTORY\n")
+	fmt.Printf("BASE DIRECTORY:\n\n")
 	fmt.Println(base)
 
 	base = base + "/"
 
-	fmt.Println("\nDELETED FILES:\n")
+	fmt.Printf("\nDELETED FILES:\n\n")
 	for _, f := range r.Deleted() {
 		if f != "" {
 			fmt.Println(strings.TrimPrefix(f, base))
 		}
 	}
-	fmt.Println("\nADDED FILES:\n")
+	fmt.Printf("\nADDED FILES:\n\n")
 	for _, f := range r.Added {
 		fmt.Println(strings.TrimPrefix(f, base))
 	}
-	fmt.Println("\nMOVED FILES:\n")
+	fmt.Printf("\nMOVED FILES:\n\n")
 	for _, m := range r.Moved {
 		fmt.Println(strings.TrimPrefix(m.From, base))
 		fmt.Println(" ↳ " + strings.TrimPrefix(m.To, base))
 	}
-
 }
